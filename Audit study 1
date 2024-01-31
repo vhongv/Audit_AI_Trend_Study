@@ -1,0 +1,144 @@
+import random
+from itertools import combinations
+
+# Constants
+RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+SUITS = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+HAND_SIZE = 2
+COMMUNITY_CARDS_SIZE = 5
+
+# Function to generate a deck of cards
+def generate_deck():
+    deck = [{'rank': rank, 'suit': suit} for suit in SUITS for rank in RANKS]
+    random.shuffle(deck)
+    return deck
+
+
+# Function to deal hole cards to players
+def deal_hole_cards(num_players, deck):
+    hands = [[] for _ in range(num_players)]
+    for _ in range(HAND_SIZE):  
+        for player in range(num_players):
+            hands[player].append(deck.pop())
+    return hands
+
+# Function to deal community cards
+def deal_community_cards(deck, used_cards):
+    community_cards = random.sample([card for card in deck if card not in used_cards], COMMUNITY_CARDS_SIZE)
+    return community_cards
+
+# Function to evaluate the best 5-card hand
+def best_five_cards(seven_cards):
+    best_hand = None
+    best_ranking = float('-inf')
+
+    for combo in combinations(seven_cards, 5):
+        current_ranking = evaluate_hand(list(combo))
+        if current_ranking > best_ranking:
+            best_hand = list(combo)
+            best_ranking = current_ranking
+
+    return best_hand
+
+
+# Function to evaluate the hand and determine its rank
+def evaluate_hand(hand):
+    ranks = [card['rank'] for card in hand]
+    suits = [card['suit'] for card in hand]
+
+    if len(set(suits)) == 1:
+        if sorted(ranks, key=lambda x: RANKS.index(x)) == RANKS[-5:]:
+            return 9  # Royal Flush
+        elif sorted(ranks, key=lambda x: RANKS.index(x)) in [RANKS[i-1:i+4] for i in range(len(RANKS)-5)]:
+            return 8  # Straight Flush
+        else:
+            return 5  # Flush
+
+    if sorted(ranks, key=lambda x: RANKS.index(x)) in [RANKS[i-1:i+4] for i in range(len(RANKS)-5)]:
+        return 4  # Straight
+
+    rank_counts = {rank: ranks.count(rank) for rank in set(ranks)}
+    if 4 in rank_counts.values():
+        return 7  # Four of a Kind
+
+    elif 3 in rank_counts.values() and 2 in rank_counts.values():
+        return 6  # Full House
+
+    elif 3 in rank_counts.values() :
+        return 3  # Three of a Kind
+
+    elif list(rank_counts.values()).count(2) == 2:
+        return 2  # Two Pair
+
+    elif 2 in rank_counts.values():
+        return 1  # One Pair
+
+    return 0  # High Card
+
+# Function to simulate a Texas Hold'em game
+def simulate_texas_holdem(num_simulations, num_players):
+    royal_flush_count = 0
+    straight_flush_count = 0
+    flush_count = 0
+    straight_count = 0
+    four_of_a_kind_count = 0
+    full_house_count = 0
+    three_of_a_kind_count = 0
+    two_pair_count = 0
+    one_pair_count = 0
+    high_card_count = 0
+
+    for _ in range(num_simulations):
+        deck = generate_deck()
+        hands = deal_hole_cards(num_players, deck)
+
+        # Deal community cards
+        used_cards = [card for hand in hands for card in hand]
+        community_cards = deal_community_cards(deck, used_cards)
+
+        for i in range(num_players):
+            player_hand = hands[i] + community_cards
+            player_best_five=best_five_cards(player_hand)
+            hand_rank = evaluate_hand(player_best_five)
+
+            if hand_rank == 9:
+                royal_flush_count += 1
+            elif hand_rank == 8:
+                straight_flush_count += 1
+            elif hand_rank == 5:
+                flush_count += 1
+            elif hand_rank == 4:
+                straight_count += 1
+            elif hand_rank == 7:
+                four_of_a_kind_count += 1
+            elif hand_rank == 6:
+                full_house_count += 1
+            elif hand_rank == 3:
+                three_of_a_kind_count += 1
+            elif hand_rank == 2:
+                two_pair_count += 1
+            elif hand_rank == 1:
+                one_pair_count += 1
+            elif hand_rank == 0:
+                high_card_count += 1
+
+    return {
+        'Royal Flush': royal_flush_count,
+        'Straight Flush': straight_flush_count,
+        'Four Cards': four_of_a_kind_count,
+        'Full House': full_house_count,
+        'Flush': flush_count,
+        'Straight': straight_count,
+        'Three Cards': three_of_a_kind_count,
+        'Two Pair': two_pair_count,
+        'One Pair': one_pair_count,
+        'High Card': high_card_count
+    }
+
+# Example usage
+num_simulations = 10000
+num_players = 10
+result = simulate_texas_holdem(num_simulations, num_players)
+print("Simulation Results:")
+for hand, count in result.items():
+    print(f"{hand}: {count}")
