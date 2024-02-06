@@ -52,7 +52,6 @@ test_data = all_transactions[800:]
 train_labels = labels[:800]
 test_labels = labels[800:]
 
-print(train_data.shape[1])
 # 간단한 규칙 기반 횡령 탐지 모델
 def fraud_detection_rule_based(transaction):
     # Amount가 일정 값 이상이면 횡령으로 간주
