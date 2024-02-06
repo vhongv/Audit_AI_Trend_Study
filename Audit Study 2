@@ -1,0 +1,19 @@
+np.random.seed(42)
+num_samples = 1000
+
+# 정상 거래 데이터
+normal_transactions = np.random.normal(loc=100, scale=20, size=(num_samples // 2, 3))
+
+# 횡령 거래 데이터
+fraudulent_transactions = np.random.normal(loc=300, scale=50, size=(num_samples // 2, 3))
+
+# 합치기
+all_transactions = np.vstack((normal_transactions, fraudulent_transactions))
+print(all_transactions)
+len(all_transactions)
+
+# 레이블 생성 (0: 정상, 1: 횡령)
+labels = np.zeros(num_samples)
+labels[-(num_samples // 10):] = 1
+
+print(labels)
