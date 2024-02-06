@@ -1,0 +1,33 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 가짜 데이터 생성
+np.random.seed(42)
+X = 2 * np.random.rand(100, 1)
+y = 4 + 3 * X + np.random.randn(100, 1)
+
+# 편향(bias)을 추가
+X_b = np.c_[np.ones((100, 1)), X]
+
+# 학습률과 에포크 설정
+learning_rate = 0.2
+n_epochs = 30
+
+# 초기 가중치 랜덤 설정
+theta = np.random.randn(2, 1)
+
+# 경사 하강법으로 모델 훈련
+for epoch in range(n_epochs):
+    gradients = 2 / 100 * X_b.T.dot(X_b.dot(theta) - y)
+    theta = theta - learning_rate * gradients
+
+# 테스트 데이터로 예측
+X_test = np.array([[0], [2]])
+X_test_b = np.c_[np.ones((2, 1)), X_test]
+y_pred = X_test_b.dot(theta)
+
+# 결과 시각화
+plt.scatter(X, y, label='True data')
+plt.plot(X_test, y_pred, 'r-', label='Predictions')
+plt.legend()
+plt.show()
