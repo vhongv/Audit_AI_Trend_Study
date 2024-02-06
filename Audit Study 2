@@ -1,10 +1,81 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# Generate x values
+x_values = np.linspace(-7, 7, 100)
+
+# Calculate corresponding y values using the sigmoid function
+y_values = sigmoid(x_values)
+
+# Plot the sigmoid function
+plt.plot(x_values, y_values, label='Sigmoid Function', color='blue')
+plt.axhline(0.5, color='red', linestyle='--', label='Threshold (0.5)')
+
+# Add labels and title
+plt.xlabel('Input')
+plt.ylabel('Output')
+plt.title('Sigmoid Function')
+plt.legend()
+
+# Show the plot
+plt.show()
+
+###########################################################################
+import numpy as np
+import random
+
+# 데이터 생성
+np.random.seed(42)
+num_samples = 1000
+
+# 정상 거래 데이터
+normal_transactions = np.random.normal(loc=100, scale=20, size=(700, 3))
+
+# 불량 거래 데이터
+fraudulent_transactions = np.random.normal(loc=200, scale=50, size=(300, 3))
+
+# 합치기
+all_transactions = np.vstack((normal_transactions, fraudulent_transactions))
+
+# 레이블 생성 (0: 정상, 1: 횡령)
+labels = np.zeros(num_samples)
+labels[-(num_samples // 10):] = 1
+random.shuffle(labels)
+
+# 훈련 데이터와 테스트 데이터로 나누기
+train_data = all_transactions[:800]
+test_data = all_transactions[800:]
+train_labels = labels[:800]
+test_labels = labels[800:]
+
+print(train_data.shape[1])
+# 간단한 규칙 기반 횡령 탐지 모델
+def fraud_detection_rule_based(transaction):
+    # Amount가 일정 값 이상이면 횡령으로 간주
+    if transaction[0] > 200:
+        return 1  # 횡령
+    else:
+        return 0  # 정상
+
+# 예측 및 평가
+predictions = [fraud_detection_rule_based(transaction) for transaction in test_data]
+accuracy = np.mean(predictions == test_labels)
+
+print(f'Accuracy: {accuracy}')
+
+#########################################################################################
+
 np.random.seed(42)
 num_samples = 1000
 
 # 정상 거래 데이터
 normal_transactions = np.random.normal(loc=100, scale=20, size=(num_samples // 2, 3))
 
-# 횡령 거래 데이터
+# 불량 거래 데이터
 fraudulent_transactions = np.random.normal(loc=300, scale=50, size=(num_samples // 2, 3))
 
 # 합치기
@@ -17,3 +88,219 @@ labels = np.zeros(num_samples)
 labels[-(num_samples // 10):] = 1
 
 print(labels)
+
+#############################################################################################
+
+import numpy as np
+import random
+# 데이터 생성
+np.random.seed(42)
+num_samples = 1000
+
+# 정상 거래 데이터
+normal_transactions = np.random.normal(loc=100, scale=20, size=(700, 3))
+
+# 불량 거래 데이터
+fraudulent_transactions = np.random.normal(loc=200, scale=50, size=(300, 3))
+
+# 합치기
+all_transactions = np.vstack((normal_transactions, fraudulent_transactions))
+
+# 레이블 생성 (0: 정상, 1: 횡령)
+labels = np.zeros(num_samples)
+labels[-(num_samples // 10):] = 1
+random.shuffle(labels)
+
+# 훈련 데이터와 테스트 데이터로 나누기
+train_data = all_transactions[:800]
+test_data = all_transactions[800:]
+train_labels = labels[:800]
+test_labels = labels[800:]
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+def train_neural_network(inputs, labels, epochs=1000, learning_rate=0.01):
+    input_size = inputs.shape[1]
+    hidden_size = 8
+    output_size = 1
+
+    weights_input_hidden = np.random.uniform(size=(input_size, hidden_size))
+    weights_hidden_output = np.random.uniform(size=(hidden_size, output_size))
+
+    for epoch in range(epochs):
+        # Forward pass
+        hidden_layer_input = np.dot(inputs, weights_input_hidden)
+        hidden_layer_output = sigmoid(hidden_layer_input)
+
+        output_layer_input = np.dot(hidden_layer_output, weights_hidden_output)
+        predicted_labels = sigmoid(output_layer_input)
+
+        # Backward pass
+        output_error = labels.reshape(-1,1) - predicted_labels
+        output_delta = output_error * sigmoid_derivative(predicted_labels)
+
+        hidden_layer_error = output_delta.dot(weights_hidden_output.T)
+        hidden_layer_delta = hidden_layer_error * sigmoid_derivative(hidden_layer_output)
+
+        # Update weights
+        weights_hidden_output += hidden_layer_output.T.dot(output_delta) * learning_rate
+        weights_input_hidden += inputs.T.dot(hidden_layer_delta) * learning_rate
+
+    return weights_input_hidden, weights_hidden_output
+
+# Train the neural network
+trained_weights_input_hidden, trained_weights_hidden_output = train_neural_network(train_data, train_labels)
+
+# Test the trained model
+def predict(inputs):
+    hidden_layer_output = sigmoid(np.dot(inputs, trained_weights_input_hidden))
+    predicted_labels = sigmoid(np.dot(hidden_layer_output, trained_weights_hidden_output))
+    return (predicted_labels > 0.5).astype(int)
+
+test_predictions = predict(test_data)
+
+accuracy = np.mean(test_predictions == test_labels)
+
+print(f'Accuracy: {accuracy}')
+
+#######################################################################################################
+import numpy as np
+import pandas as pd
+
+# 가상의 횡령 데이터셋 생성 (0: 정상, 1: 횡령)
+#np.random.seed(42)
+num_samples = 1000
+fraudulent_indices = np.random.choice(num_samples, size=num_samples//2, replace=False)
+
+labels = np.zeros(num_samples)
+labels[fraudulent_indices] = 1
+
+# 가상의 특성 데이터 생성
+amounts = np.random.normal(loc=100, scale=20, size=num_samples)
+merchants = np.random.choice(['A', 'B', 'C'], size=num_samples)
+times = np.random.uniform(low=0, high=24, size=num_samples)
+
+# 데이터프레임 생성
+data = {'Amount': amounts, 'Merchant': merchants, 'Time': times, 'Label': labels}
+df = pd.DataFrame(data)
+
+print(df)
+# 규칙 기반 횡령 탐지 모델
+def fraud_detection_rule_based(aa):
+    # Amount와 Merchant를 기반으로 단순한 규칙 적용
+    if aa['Amount'] > 150 and aa['Merchant'] == 'B':
+        return 1  # 횡령
+    else:
+        return 0  # 정상
+
+# 테스트 데이터로 예측
+predictions = df.apply(fraud_detection_rule_based, axis=1)
+
+# 정확도 계산
+accuracy = np.mean(predictions == df['Label'])
+print(f'Accuracy: {accuracy}')
+
+
+####################################################################################
+import numpy as np
+import random
+
+# 데이터 생성
+num_samples = 1000
+
+# 정상 거래 데이터
+normal_transactions = np.random.normal(loc=100, scale=20, size=(700, 3))
+
+# 불량 거래 데이터
+fraudulent_transactions = np.random.normal(loc=200, scale=50, size=(300, 3))
+
+# 합치기
+all_transactions = np.vstack((normal_transactions, fraudulent_transactions))
+
+# 레이블 생성 (0: 정상, 1: 횡령)
+labels = np.zeros(num_samples)
+labels[-(num_samples // 10):] = 1
+random.shuffle(labels)
+
+# 훈련 데이터와 테스트 데이터로 나누기
+train_data = all_transactions[:800]
+test_data = all_transactions[800:]
+train_labels = labels[:800]
+test_labels = labels[800:]
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+def train_neural_network(inputs, labels, epochs=1000, learning_rate=0.01):
+    input_size = inputs.shape[1]
+    hidden1_size = 3
+    hidden2_size = 2
+    hidden3_size = 4
+    output_size = 1
+
+    weights_input_hidden1 = np.random.uniform(size=(input_size, hidden1_size))
+    weights_hidden1_hidden2 = np.random.uniform(size=(hidden1_size, hidden2_size))
+    weights_hidden2_hidden3 = np.random.uniform(size=(hidden2_size, hidden3_size))
+    weights_hidden3_output = np.random.uniform(size=(hidden3_size, output_size))
+
+    for epoch in range(epochs):
+        # Forward pass
+        hidden1_layer_input = np.dot(inputs, weights_input_hidden1)
+        hidden1_layer_output = sigmoid(hidden1_layer_input)
+
+        hidden2_layer_input = np.dot(hidden1_layer_output, weights_hidden1_hidden2)
+        hidden2_layer_output = sigmoid(hidden2_layer_input)
+
+        hidden3_layer_input = np.dot(hidden2_layer_output, weights_hidden2_hidden3)
+        hidden3_layer_output = sigmoid(hidden3_layer_input)
+
+        output_layer_input = np.dot(hidden3_layer_output, weights_hidden3_output)
+        predicted_labels = sigmoid(output_layer_input)
+
+        # Backward pass
+        output_error = labels.reshape(-1, 1) - predicted_labels
+        output_delta = output_error * sigmoid_derivative(predicted_labels)
+
+        hidden3_layer_error = output_delta.dot(weights_hidden3_output.T)
+        hidden3_layer_delta = hidden3_layer_error * sigmoid_derivative(hidden3_layer_output)
+
+        hidden2_layer_error = hidden3_layer_delta.dot(weights_hidden2_hidden3.T)
+        hidden2_layer_delta = hidden2_layer_error * sigmoid_derivative(hidden2_layer_output)
+
+        hidden1_layer_error = hidden2_layer_delta.dot(weights_hidden1_hidden2.T)
+        hidden1_layer_delta = hidden1_layer_error * sigmoid_derivative(hidden1_layer_output)
+
+        # Update weights
+        weights_hidden3_output += hidden3_layer_output.T.dot(output_delta) * learning_rate
+        weights_hidden2_hidden3 += hidden2_layer_output.T.dot(hidden3_layer_delta) * learning_rate
+        weights_hidden1_hidden2 += hidden1_layer_output.T.dot(hidden2_layer_delta) * learning_rate
+        weights_input_hidden1 += inputs.T.dot(hidden1_layer_delta) * learning_rate
+
+    return weights_input_hidden1, weights_hidden1_hidden2, weights_hidden2_hidden3, weights_hidden3_output
+
+# Train the neural network
+(trained_weights_input_hidden1, trained_weights_hidden1_hidden2,
+ trained_weights_hidden2_hidden3, trained_weights_hidden3_output) = train_neural_network(train_data, train_labels)
+
+# Test the trained model
+def predict(inputs):
+    hidden1_layer_output = sigmoid(np.dot(inputs, trained_weights_input_hidden1))
+    hidden2_layer_output = sigmoid(np.dot(hidden1_layer_output, trained_weights_hidden1_hidden2))
+    hidden3_layer_output = sigmoid(np.dot(hidden2_layer_output, trained_weights_hidden2_hidden3))
+    predicted_labels = sigmoid(np.dot(hidden3_layer_output, trained_weights_hidden3_output))
+    return (predicted_labels > 0.5).astype(int)
+
+test_predictions = predict(test_data)
+
+accuracy = np.mean(test_predictions.flatten() == test_labels)
+
+print(f'Accuracy: {accuracy}')
+
+
