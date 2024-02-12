@@ -231,6 +231,15 @@ rnn = SimpleRNN(input_size, hidden_size)
 h_next, y = rnn.forward(x, h_prev)
 
 # 결과 출력
-print("새로운 상태 h:", h_next)
-print("출력값 y:", y)
+# SimpleRNN 객체 생성
+rnn = SimpleRNN(input_size, hidden_size)
+
+# 순방향 전파 실행
+h_next, y = rnn.forward(x, h_prev)
+
+# 결과 출력
+print("새로운 상태 h:", h_next.reshape(1,-1))
+print("출력값 y:", y.reshape(1,-1))
+
+
 
