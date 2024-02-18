@@ -1,0 +1,58 @@
+import numpy as np
+
+# 미로 설정
+maze = np.array([
+    ['S', 0, 'X', -1],
+    [-1, 0, 'X', -1],
+    [-1, 0, 0, 0],
+    [-1, 'X', 'X', 'G']
+])
+
+# Q 테이블 초기화
+Q = np.zeros((maze.shape[0], maze.shape[1], 4))  # 상하좌우 4가지 방향에 대한 Q 테이블
+
+# 보상 설정
+rewards = {'S': 0, 'G': 100, 0: -1, 'X': -1}
+
+# 상, 하, 좌, 우 방향 벡터
+directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+# Q-learning 파라미터
+gamma = 0.8
+alpha = 0.5
+num_episodes = 1000
+
+# 상태를 좌표로 변환하는 함수
+def state_to_coords(state):
+    return np.argwhere(maze == state)[0]
+
+# 좌표를 상태로 변환하는 함수
+def coords_to_state(coords):
+    return maze[tuple(coords)]
+
+# Q-learning 알고리즘
+for episode in range(num_episodes):
+    state = state_to_coords('S')
+    while coords_to_state(state) != 'G':
+        # 가능한 행동 찾기
+        possible_actions = []
+        for i, (dx, dy) in enumerate(directions):
+            new_x, new_y = state[0] + dx, state[1] + dy
+            if 0 <= new_x < maze.shape[0] and 0 <= new_y < maze.shape[1] and maze[new_x, new_y] != 'X':
+                possible_actions.append(i)
+        
+        # 무작위로 행동 선택
+        action = np.random.choice(possible_actions)
+        dx, dy = directions[action]
+        new_state = (state[0] + dx, state[1] + dy)
+        
+        # Q 테이블 업데이트
+        Q[state[0], state[1], action] += alpha * (rewards.get(coords_to_state(new_state), 0) +
+                                                  gamma * np.max(Q[new_state[0], new_state[1], :]) -
+                                                  Q[state[0], state[1], action])
+        
+        state = new_state
+
+# 학습된 Q 테이블 출력
+print("Q 테이블:")
+print(Q)
