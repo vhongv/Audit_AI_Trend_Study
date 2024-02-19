@@ -1,5 +1,65 @@
 import numpy as np
 
+# 그리드 환경 설정
+num_states = 10  # 상태의 개수
+num_actions = 2  # 행동의 개수 (좌로 이동, 우로 이동)
+
+# Q 테이블 초기화
+Q = np.zeros((num_states, num_actions))
+
+# 보상 설정
+rewards = np.zeros(num_states)
+rewards[num_states - 1] = 100 # 목표 지점에 도달할 때 보상 1
+
+# 학습 파라미터 설정
+alpha = 0.5  # 학습률
+gamma = 0.5  # 할인율
+epsilon = 0.9  # 탐험 확률
+
+# Q-learning 알고리즘
+num_episodes = 10000
+
+for episode in range(num_episodes):
+    state = 0  # 초기 상태 설정
+    done = False
+
+    while not done:
+        # epsilon-greedy 정책에 따라 행동 선택
+        if np.random.uniform(0, 1) < epsilon:
+            action = np.random.randint(num_actions)  # 무작위 행동 선택
+        else:
+            action = np.argmax(Q[state])  # Q값이 최대인 행동 선택
+
+        # 행동 실행 후 다음 상태와 보상 얻기
+        if action == 0:
+            next_state = max(0, state - 1)  # 좌로 이동
+        else:
+            next_state = min(num_states - 1, state + 1)  # 우로 이동
+
+        reward = rewards[next_state]
+
+        # Q값 업데이트
+        Q[state, action] = Q[state, action] + alpha * (reward + gamma * np.max(Q[next_state]) - Q[state, action])
+
+        # 다음 상태로 이동
+        state = next_state
+
+        # 종료 조건 확인
+        if state == num_states - 1:
+            done = True
+
+# 학습된 Q값 출력
+print("학습된 Q 테이블:\n", Q)
+
+
+
+
+
+
+#############################################################################################################
+
+import numpy as np
+
 # 미로 설정
 maze = np.array([
     ['S', 0, 'X', -1],
