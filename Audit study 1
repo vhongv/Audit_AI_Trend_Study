@@ -329,3 +329,124 @@ result = simulate_texas_holdem(num_simulations, num_players)
 print("Simulation Results:")
 for hand, count in result.items():
     print(f"{hand}: {count}")
+
+#######################################################################################
+import random
+from itertools import combinations
+
+# Constants
+RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+SUITS = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+HAND_SIZE = 2
+COMMUNITY_CARDS_SIZE = 5
+
+# Function to generate a deck of cards
+def generate_deck():
+    deck = [{'rank': rank, 'suit': suit} for suit in SUITS for rank in RANKS]
+    random.shuffle(deck)
+    return deck
+
+# Function to evaluate the best 5-card hand
+def best_five_cards(seven_cards):
+    best_five = None
+    best_ranking = float('-inf')
+
+    for combo in combinations(seven_cards, 5):
+        current_ranking = evaluate_hand(combo)
+        if current_ranking > best_ranking:
+            best_five = combo
+            best_ranking = current_ranking
+
+    return best_five
+
+# Function to deal hole cards to players
+def deal_hole_cards(num_players, deck):
+    hands = [[] for _ in range(num_players)]
+    for _ in range(HAND_SIZE):
+        for player in range(num_players):
+            hands[player].append(deck.pop())
+    return hands
+
+# Function to evaluate the hand and determine its rank
+def evaluate_hand(hand):
+    ranks = [card['rank'] for card in hand]
+    suits = [card['suit'] for card in hand]
+
+    if len(set(suits)) == 1:
+        if sorted(ranks, key=lambda x: RANKS.index(x)) == RANKS[-5:]:
+            return 9  # Royal Flush
+        elif sorted(ranks, key=lambda x: RANKS.index(x)) in [RANKS[i-1:i+4] for i in range(len(RANKS)-5)]:
+            return 8 + RANKS.index(max(ranks))/100  # Straight Flush
+        else:
+            return 5 + max([RANKS.index(rank) for rank in ranks])/100  # Flush
+
+    if sorted(ranks, key=lambda x: RANKS.index(x)) in [RANKS[i-1:i+4] for i in range(len(RANKS)-5)]:
+        return 4+ RANKS.index(max(ranks))/100  # Straight
+
+    rank_counts = {rank: ranks.count(rank) for rank in set(ranks)}
+    if 4 in rank_counts.values():
+        return 7 + RANKS.index(max(rank_counts, key=rank_counts.get))/100  # Four of a Kind
+
+    elif 3 in rank_counts.values() and 2 in rank_counts.values():
+        return 6 + RANKS.index(max(rank_counts, key=rank_counts.get))/100  # Full House
+
+    elif 3 in rank_counts.values() :
+        return 3 + RANKS.index(max(rank_counts, key=rank_counts.get))/100  # Three of a Kind
+
+    elif list(rank_counts.values()).count(2) == 2:
+        pairs = [rank for rank, count in rank_counts.items() if count == 2]
+        return 2 + max([RANKS.index(rank) for rank in pairs])/100  # Two Pair
+
+    elif 2 in rank_counts.values():
+        pair_rank = max(rank_counts, key=rank_counts.get)
+        return 1 + RANKS.index(pair_rank)/100  # One Pair
+
+    return max([RANKS.index(rank) for rank in ranks])/100  # High Card
+
+# Function to simulate hand rankings for all possible combinations with 2 players
+def simulate_hand_rankings(input_hand):
+    d = generate_deck()
+    result = []
+
+    remaining_deck = [card for card in d if card not in input_hand]
+    all_community_cards = combinations(remaining_deck, COMMUNITY_CARDS_SIZE)
+    kk=0
+    for community_cards in all_community_cards:
+        seven_cards = input_hand + community_cards
+        best_fives = best_five_cards(seven_cards)
+        score = evaluate_hand(best_fives)
+        kk += score
+
+    result.append({'g':input_hand,'score':kk})
+
+    print(result)
+
+input_h = ({'rank': '2', 'suit': 'Spades'}, {'rank': '7', 'suit': 'Hearts'}) 
+simulate_hand_rankings(input_h)
+
+##################################################################################
+# Function to simulate hand rankings for all possible combinations
+def simulate_hand_rankings():
+    deck = generate_deck()
+    all_hands = list(combinations(deck, HAND_SIZE))
+
+    results = {}
+
+    for hand in all_hands:
+
+        remaining_cards = [card for card in deck if card not in hand]
+        all_community_cards = list(combinations(remaining_cards, COMMUNITY_CARDS_SIZE))
+
+        for community_cards in all_community_cards:
+            five_cards = list(hand) + list(community_cards)
+            #best_five = best_five_cards(seven_cards)
+            score = evaluate_hand(five_cards)
+            #results[tuple(hand)] += score
+            results[tuple(card['rank'] for card in hand)] += score
+
+    sorted_results = sorted(results.items(), key=lambda x: x[1], reverse=True)
+    for i, (hand, score) in enumerate(sorted_results, start=1):
+        print(f"Rank {i}: Hand: {hand}, Score: {score}")
+
+# Simulate hand rankings for 2 players
+simulate_hand_rankings()
