@@ -1,0 +1,64 @@
+!pip install langchain==0.1.14 openai==1.14.3 langchain-openai==0.1.1
+-----------------------------------------------------------------------------------
+import os
+os.environ['OPENAI_API_KEY'] =
+-----------------------------------------------------------------------------------
+from openai import OpenAI
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role":"user","content":"손흥민의 전성기는 지났나요"}
+    ]
+
+)
+print(response.choices[0].message.content)
+----------------------------------------------------------------------------------
+from openai import OpenAI
+client = OpenAI()
+messages = [
+    {"role": "system", "content": "You are a kind helpful assistant."},
+]
+
+while True:
+    message = input("User : ")
+    if message == "exit":
+      break
+
+    if message:
+        messages.append(
+            {"role": "user", "content": message},
+        )
+        # Use client.chat.completions.create instead of openai.ChatCompletion.create
+        chat = client.chat.completions.create(
+            model="gpt-4o", messages=messages
+        )
+
+    reply = chat.choices[0].message.content
+    print(f"ChatGPT: {reply}")
+    messages.append({"role": "assistant", "content": reply})
+-------------------------------------------------------------------------------------
+def chatGPT(context, model_selection='gpt-3.5-turbo'):
+  response =client.chat.completions.create(
+      messages = context,
+      model=model_selection
+  )
+  return response.choices[-1].message.content
+
+context = []
+while 1:
+  user_message = input("User: ")
+  context.append({'role': 'user', 'content' : user_message})
+
+  if user_message == 'exit':
+     break
+
+  AI_message=chatGPT(context)
+  print('ChatGPT: ',AI_message)
+  context.append({'role': 'assistant', 'content' : AI_message})
+
+
+
+
+
