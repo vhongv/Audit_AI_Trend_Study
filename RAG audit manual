@@ -1,0 +1,259 @@
+import os
+os.environ['OPENAI_API_KEY'] = openai api 개인키
+
+---------
+!pip install langchain==0.1.14 openai==1.14.3 langchain-openai==0.1.1
+
+
+-------------------
+from openai import OpenAI
+client = OpenAI()
+
+embeddingt = client.embeddings.create(
+    input="Your text goes here", model="text-embedding-3-small"
+).data[0].embedding
+len(embeddingt)
+
+----------
+def chatGPT(context, model_selection='gpt-4o'):
+  response =client.chat.completions.create(
+      messages = context,
+      model=model_selection
+  )
+  return response.choices[-1].message.content
+
+context = []
+while 1:
+  user_message = input("User: ")
+  context.append({'role': 'user', 'content' : user_message})
+
+  if user_message == 'exit':
+     break
+
+  AI_message=chatGPT(context)
+  print('ChatGPT: ',AI_message)
+  context.append({'role': 'assistant', 'content' : AI_message})
+
+-----------------------
+import pandas as pd
+
+import re
+
+def remove_newlines(text):
+
+  text = re.sub(r'\n',' ',text)
+  text = re.sub(r' +',' ',text)
+  return text
+
+def text_to_df(data_file):
+
+   texts=[]
+
+   with open(data_file, 'r', encoding="utf-8") as file:
+
+      text = file.read()
+
+      sections = text.split('\n\n')
+
+      for section in sections:
+
+           lines = section.split('\n')
+
+           fname = lines[0]
+
+           content = ' '.join(lines[1:])
+
+           texts.append([fname, content])
+
+   df=pd.DataFrame(texts, columns=['fname','text'])
+
+   df['text']=df['text'].apply(remove_newlines)
+
+   return df
+
+df=text_to_df('/content/drive/MyDrive/audit_manual.txt')
+df.to_csv('audit.csv', index=False, encoding='utf-8')
+
+----------------
+
+!pip install tiktoken
+
+-----------------
+import pandas as pd
+import tiktoken
+from typing import List
+
+
+embedding_model = "text-embedding-3-small"
+embedding_encoding = "cl100k_base"
+max_tokens = 1500
+
+# 'scraped.csv' 파일을 불러와서 칼럼 이름을 'title'과 'text'로 변경
+df = pd.read_csv("audit.csv")
+df.columns = ['title', 'text']
+
+df['text'] = df['text'].fillna('').astype(str)
+tokenizer = tiktoken.get_encoding(embedding_encoding)
+df['n_tokens'] = df.text.apply(lambda x: len(tokenizer.encode(x)))
+
+def split_into_many (text, max_tokens = 5000):
+
+    # 텍스트를 문장별로 나누어 각 문장의 토큰 개수를 구함
+    sentences = text.split('.')
+    n_tokens = [len(tokenizer.encode(" " + sentence)) for sentence in sentences]
+
+    chunks = []
+    tokens_so_far = 0
+    chunk = []
+
+    # 각 문장과 토큰을 결합해 루프 처리
+    for sentence, token in zip(sentences, n_tokens):
+
+        # 지금까지의 토큰 수와 현재 문장의 토큰 수를 합한 값이
+        # 최대 토큰 수를 초과하면 청크를 청크 목록에 추가하고
+        # 청크 및 토큰 수를 재설정
+        if tokens_so_far + token > max_tokens:
+            chunks.append(". ".join(chunk) + ".")
+            chunk = []
+            tokens_so_far = 0
+
+        # 현재 문장의 토큰 수가 최대 토큰 수보다 크면 다음 문장으로 넘어감
+        if token > max_tokens:
+            continue
+
+        # 그렇지 않은 경우, 문장을 청크에 추가하고 토큰 수를 합계에 추가
+        chunk.append(sentence)
+        tokens_so_far += token + 1
+
+    # 마지막 청크를 청크 목록에 추가
+    if chunk:
+        chunks.append(". ".join(chunk) + ".")
+    return chunks
+
+# 축약된 텍스트를 저장하기 위한 리스트
+shortened = []
+
+# DataFrame의 각 행에 대한 루프 처리
+for row in df.iterrows():
+    # 텍스트가 None인 경우 다음 줄로 넘어감
+    if row[1]['text'] is None:
+        continue
+    # 토큰 수가 최대 토큰 수보다 큰 경우, 텍스트를
+    # shortened 리스트에 추가
+    if row[1]['n_tokens'] > max_tokens:
+        shortened += split_into_many(row[1]['text'])
+
+    # 그 외의 경우 텍스트를 그대로 'shortened' 목록에 추가
+    else:
+        shortened.append(row[1]['text'])
+
+#"shortened"를 기반으로 새로운 DataFrame을 생성하고, 열 이름을 "text"로 지정
+df = pd.DataFrame(shortened, columns = ['text'])
+
+# 각 'text'의 토큰 수를 계산하여 새로운 열 'n_tokens'에 저장
+df['n_tokens'] = df.text.apply(lambda x: len(tokenizer.encode(x)))
+
+def get_embedding(text, model="text-embedding-3-small"):
+   text = text.replace("\n", " ")
+   if not text.strip():  # If text is empty or contains only whitespace
+        return None  # or you can return a default embedding here
+   return client.embeddings.create(input = [text], model=model).data[0].embedding
+
+df['embeddings'] = df.text.apply(lambda x: get_embedding(x, model=embedding_model))
+df.to_csv('audit_embed.csv', index=False)
+-----------------------------------------------
+                
+def distances_from_embeddings(
+    query_embedding: List[float],
+    embeddings: List[List[float]],
+    distance_metric="cosine",
+) -> List[List]:
+    """Return the distances between a query embedding and a list of embeddings."""
+    distance_metrics = {
+        "cosine": spatial.distance.cosine,
+        "L1": spatial.distance.cityblock,
+        "L2": spatial.distance.euclidean,
+        "Linf": spatial.distance.chebyshev,
+    }
+    distances = [
+        distance_metrics[distance_metric](query_embedding, embedding)
+        for embedding in embeddings
+    ]
+    return distances
+-------------------------------
+              
+import numpy as np
+from typing import List
+from scipy import spatial
+import ast
+
+client = OpenAI()
+
+df = pd.read_csv('audit_embed.csv')
+
+question = "이 개정은 몇번째인가요"
+# 질문을 벡터화
+q_embeddings = client.embeddings.create(input=[question], model='text-embedding-3-small').data[0].embedding
+
+ 
+df['embeddings'] = df['embeddings'].fillna('[]').astype(str)  # Replace NaN with empty list string
+df['embeddings'] = df['embeddings'].apply(ast.literal_eval)  # Convert string representation to list
+
+# Filter out rows with empty embeddings
+df = df[df['embeddings'].apply(len) > 0]
+
+df['distances'] = distances_from_embeddings(
+    q_embeddings,
+    df['embeddings'].apply(np.array).values,
+    distance_metric='cosine'
+)
+
+
+returns = []
+    # 컨텍스트의 현재 길이
+cur_len = 0
+
+max_len=200
+
+    # 학습 데이터를 유사도 순으로 정렬하고 토큰 개수 한도까지 컨텍스트에
+    # 추가
+for _, row in df.sort_values('distances', ascending=True).iterrows():
+        # 텍스트 길이를 현재 길이에 더하기
+        cur_len += row['n_tokens'] + 4
+
+        # 텍스트가 너무 길면 루프 종료
+        if cur_len > max_len:
+            break
+
+        # 컨텍스트 목록에 텍스트 추가하기
+        returns.append(row["text"])
+
+    # 컨텍스트를 결합해 반환
+response_ = "\n\n###\n\n".join(returns)
+
+conversation_history = []
+
+context = response_
+    # 프롬프트를 생성하고 대화 기록에 추가하기
+prompt = f"당신은 검사부 직원입니다. 문맥에 따라 고객의 질문에 정중하게 대답해 주십시오. 컨텍스트가 질문에 대답할 수 없는 경우 '모르겠습니다'라고 대답하세요.\n\n컨텍스트: {context}\n\n---\n\n질문: {question}\n답변:"
+conversation_history.append({"role": "user", "content": prompt})
+
+try:
+        # ChatGPT에서 답변 생성
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=conversation_history,
+            temperature=1,
+        )
+
+        # ChatGPT에서 답변 반환
+        reply=response.choices[0].message.content
+        print("GPT: ", {reply})
+
+except Exception as e:
+        # 오류가 발생하면 빈 문자열을 반환
+        print(e)
+
+                
+
+
